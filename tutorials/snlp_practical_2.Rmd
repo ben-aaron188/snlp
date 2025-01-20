@@ -1,0 +1,148 @@
+---
+title: 'Practical II'
+subtitle: Bennett Kleinberg
+date: 'Statistical Natural Language Processing in R'
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+    code_folding: show
+  html_notebook:
+    theme: united
+    toc: yes
+    code_folding: show
+  pdf_document:
+    toc: yes
+    code_folding: show
+---
+
+## Aims of this practical
+
+- Working with DFM objects
+- Dimensionality reduction of text representations
+- Using text representations for similarity calculations
+
+## Task 1: Text representations as document-feature matrices
+
+Load the [YouTube vlogs dataset](https://aclanthology.org/D18-1394.pdf) from Practical I. We will now work with the first kind of text representations: document-feature matrices.
+
+```{r}
+library(quanteda)
+library(data.table)
+# load('/Users/bennettkleinberg/GitHub/snlp/data/vlogs_corpus.RData')
+```
+
+### Exercise 1.1
+
+Built a simple term frequency matrix. Compare the dimensions after each of these preprocessing steps successively:
+
+1. raw (without any preprocessing)
+1. after lower-casing
+1. after removing punctuation
+1. after removing stopwords
+1. after including only terms which occur in at least 1% of the documents
+
+
+Depending on the memory on your machine, running the whole dataset might slow you down. In that case, you can also choose to only use a subs election of the dataset (e.g., the first 5000 vlogs).
+
+```{r}
+# write your R code here
+
+```
+
+
+
+### Exercise 1.2
+
+Now move to n-gram representations. Built a representation of uni-, bi-, and trigrams.
+How does the sparsity of your DFM representation change if you apply stemming?
+
+```{r}
+# write your R code here
+
+```
+
+
+
+### Exercise 1.3
+
+Apply a weighting to the n-gram representation. Then compare the most important terms before and after applying a weighting such as TF-IDF.
+
+```{r}
+# write your R code here
+
+```
+
+
+## Task 2: Working with text representations
+
+For this task, we will use the [Hippocorpus dataset](https://aclanthology.org/2020.acl-main.178.pdf). From the dataset summary:
+
+> To examine the cognitive processes of remembering and imagining and their traces in language, we introduce Hippocorpus, a dataset of 6,854 English diary-like short stories about recalled and imagined events. Using a crowdsourcing framework, we first collect recalled stories and summaries from workers, then provide these summaries to other workers who write imagined stories. Finally, months later, we collect a retold version of the recalled stories from a subset of recalled authors. Our dataset comes paired with author demographics (age, gender, race), their openness to experience, as well as some variables regarding the author's relationship to the event (e.g., how personal the event is, how often they tell its story, etc.).
+
+You can obtain the dataset from publicly available repos or via the `data` directory as follows:
+
+```{r}
+#hc = fread('/Users/bennettkleinberg/GitHub/snlp/data/hippocorpus_preprocessed.csv')
+#names(hc)
+
+# note that we only use the remembered statements (=truthful) and the fabricated ones (=deceptive).
+```
+
+### Exercise 2.1
+
+Build an n-gram representation of the data with preprocessing steps of your choice (think about whether these are useful or not). Stem the terms and apply a 5% document frequency minimum.
+
+```{r}
+# write your R code here
+
+```
+
+
+
+### Exercise 2.2
+
+What are the most important terms for truthful vs deceptive stories? You can use your DFM from above. Have a look at the `topfeatures()` function for a quick way of looking at these terms. 
+
+_Hint: You will first need to assign a document-level variable. This can be done in the very first steps (i.e., when creating a corpus and then handing the docvars over to the tokens)._
+
+```{r}
+# write your R code here
+
+```
+
+
+
+### Exercise 2.3
+
+We can now take one step closer to working with textual data to understand psychological and cognitive aspects. The Hippocorpus dataset allows us to measure how much participants relied on the given summary. That, in turn, can be used for further analyses to look at individual differences (e.g., is that reliance on the summary - or conversely, deviance from it, related to age differences?) and group differences (e.g., does this differ between truthful and deceptive narratives?). We will take a look at the latter in Exercise 2.4.
+
+Compare the cosine similarity - based on an n-gram representation - of the stories with the provided summaries (columns: `text` and `summary`). Each text has got a summary and your goal is to quantify the similarity between text and summary.
+
+Hints:
+
+- you will need to create DFM representations for texts and for the summaries
+- a problem you will encounter is that these do not necessarily result in the same ngrams
+- this can be fixed with the `dfm_match()` function
+
+For the cosine similarity, you can use the snippet below:
+
+```{r}
+# for two vectors A and B, returns the cosine similarity between A and B
+cossim = function(A, B){
+  numerator = sum(A*B)
+  denominator = sqrt(sum(A*A))*sqrt(sum(B*B))
+  cosine_sim = numerator/denominator
+  return(cosine_sim)
+}
+```
+
+
+
+```{r}
+# write your R code here
+
+```
+
+
+---

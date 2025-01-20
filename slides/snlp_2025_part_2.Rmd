@@ -1,0 +1,867 @@
+---
+title: "Statistical Natural Language Processing in R"
+#date: '26 Sept. 2024' 
+subtitle: "Bennett Kleinberg"
+#bibliography: slide_deps/mb_course.bib
+output:
+  revealjs::revealjs_presentation:
+    css: "./slide_deps/tiu_style_2.css"
+    transition: "slide"
+    reveal_options:
+      slideNumber: true
+      controls: false
+---
+
+```{r echo=F, message=F}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, echo=T, warning=FALSE, message=FALSE, root.dir='/Users/bennettkleinberg/GitHub/snlp/data')
+
+library(quanteda)
+library(data.table)
+```
+
+<!-- ## Part 2 -->
+
+<!-- III -->
+
+<!-- - sentiment analysis (dictionaries vs trained models) -->
+<!-- - dictionaries -->
+<!-- - - lexicon package -->
+<!-- - - hatebase -->
+<!-- - - your own dictionary -->
+<!-- - - LIWC -->
+<!-- - trajectory analysis -->
+<!-- - co-occurrences -->
+
+<!-- Practical III -->
+<!-- - sentiment analysis -->
+<!-- - other dictionary -->
+<!-- - own dictionary -->
+<!-- - trajectory -->
+<!-- - co-occurrences -->
+<!-- - PMI -->
+
+
+<!-- IV -->
+
+<!-- - topics -->
+<!-- - embeddings -->
+<!-- - - theory -->
+<!-- - static -->
+<!-- - contextualised -->
+<!-- - - practical part -->
+<!-- - supervised learning with text data -->
+<!-- - transformers -->
+
+
+<!-- Practical IV -->
+<!-- - topic model -->
+<!-- - own data -->
+<!-- - getting embeddings -->
+<!-- - similarity -->
+<!-- - prediction tasks -->
+<!-- - - BOW -->
+<!-- - - TFIDF -->
+<!-- - - embeddings -->
+
+
+
+
+##  {.sectiontitle}
+
+The bigger picture of textual data
+
+## Why textual data?
+
+- textual data are everywhere
+- textual data are (very) promising
+
+
+## Two general approaches
+
+1. Measurement
+2. Prediction
+
+## One big problem
+
+- text data $\neq$ numerical data
+- compare this to survey data, trading data, crime statistics, etc.
+- a piece of text data is just that, "a text"
+- but: for statistical analyses (and statistical learning), we rely on numerical representations
+
+_The first challenge of NLP is text quantification._
+
+## This course
+
+_An introduction to statistical natural language processing in R_
+
+- the basics of handling textual data in R
+- fundamental approaches of (real) NLP
+- text representations
+- measuring constructs in textual data
+- textual data for prediction (supervised machine learning)
+
+## Structure
+
+- short theoretical parts (4x)
+- followed by practicals (4x)
+- discussion of solutions
+
+_Ask all your questions_
+
+## The `quanteda` package
+
+```{r message=F}
+library(quanteda)
+packageVersion("quanteda")
+```
+
+- [quanteda: Quantitative Analysis of Textual Data](https://quanteda.io/)[REFREF]
+    - documentation
+    - tutorials
+    - examples
+
+##  {.sectiontitle}
+
+Aspects of textual data
+
+## How would you describe this text?
+
+> The whole situation makes me very anxious. I do not believe, as a country, we are doing everything to prevent the spread. I believe we should be in a full and proper lockdown like other countries. I fear for my children and their futures.
+
+## Different aspects of text data
+
+- lexical dimension (text metrics)
+- syntactic dimension
+- semantic dimension
+
+## Lexical dimension
+
+_Numerical summaries of units of a document or collection of documents._
+
+Examples:
+
+- no. of words
+- average sentence length
+
+## Syntactic dimension
+
+_Information about the arrangement/structure of language._
+
+Examples:
+
+- grammatical function of words: verbs, nouns, persons, locations
+- structure of a sentence (parse tree)
+
+## Semantic dimension
+
+_Information of the text concerned with meaning._
+
+- sentiment
+- psycholinguistic features
+- relationship between words
+- contextual variation of words
+- higher-order constructs
+
+##  {.sectiontitle}
+
+Units of textual data
+
+## What can we work with?
+
+1. A **corpus** is a collection of documents
+2. A **document** is a collection of sentences
+3. A **sentence** consists of words
+4. A **word** consists of syllables
+5. A **syllable** consists of **characters**
+
+
+## Special units in NLP
+
+- tokens: a sub-unit of text that is the at the core of NLP
+- ngrams: a sequence of $n$ tokens
+
+Example sentence:
+
+> The whole situation makes me very anxious.
+
+## Tokenisation
+
+```{r}
+text_1 = 'The whole situation makes me very anxious.'
+
+toks = tokens(text_1)
+toks
+```
+
+## Common preprocessing steps
+
+Removing punctuation:
+
+```{r}
+toks_no_punct = tokens(text_1
+              , remove_punct = T
+              , remove_numbers = F
+              , remove_url = F
+              , remove_separators = F)
+toks_no_punct
+```
+
+## Note on tokenisation
+
+This is far from a solved problem:
+
+- many tokeniser algorithms exist
+- each has a slightly different token segmentation approach
+
+
+```{r}
+text_2 = 'evidence-based self-fulfilling prophesy'
+
+tokens(text_2, what = 'word')
+```
+
+## Slightly different tokenisation
+
+```{r}
+tokens(text_2, split_hyphens = T)
+```
+
+## Other text units
+
+```{r}
+# sentences
+length(tokens(toks, what = 'sentence'))
+
+# tokens
+ntoken(toks)
+
+# characters
+nchar(text_1)
+```
+
+## {.sectiontitle}
+
+Text metrics (corpus statistics)
+
+## Key idea
+
+- summarise key information of text data numerically
+- largely pertains to meta features of **documents**
+
+Common text metrics: readability (see `quanteda.textstats`), lexical diversity
+
+## Take two examples
+
+Example 1:
+
+> I am very anxious about this situation. Very anxious.
+
+Example 2:
+
+> I am very anxious about this situation. Really scary.
+
+_Which has a higher lexical diversity?_
+
+## Types and tokens
+
+```{r}
+ex_1 = 'I am very anxious about this situation. Very anxious.'
+ex_2 = 'I am very anxious about this situation. Really scary.'
+```
+
+- Tokens: a sub-unit of text
+- Types: unique tokens
+
+_The type-token ration (TTR) is often used as a measure of lexical diversity._
+
+
+## TTR for our examples
+
+```{r}
+ttr_1 = ntype(tokens(ex_1))/ntoken(tokens(ex_1))
+ttr_1
+
+ttr_2 = ntype(tokens(ex_2))/ntoken(tokens(ex_2))
+ttr_2
+```
+
+## {.sectiontitle}
+
+Handling textual data in R
+
+## The `stringr` package
+
+- most powerful tool for most text string queries
+- based on regex (regular expressions)
+- useful [cheat sheet](https://evoldyn.gitlab.io/evomics-2018/ref-sheets/R_strings.pdf)
+
+
+## The `corpus` object
+
+A collection of documents is a **corpus**.
+
+Quanteda assumes you work with corpus objects.
+
+- can be constructed from individual strings (= character vectors)
+- or from a data.frame (or data.table)
+
+## A corpus from character vectors
+
+```{r}
+corpus_1 = corpus(c(text_1, text_2))
+```
+
+## A corpus from a data.table
+
+```{r}
+data_1 = fread('/Users/bennettkleinberg/GitHub/snlp/data/real_world_worry_waves_dataset.csv')
+
+names(data_1)[1:13]
+
+```
+
+```{r}
+corpus_rwwd = corpus(data_1$text_long_wave1)
+
+corpus_rwwd
+```
+
+##
+
+```{r}
+summary(corpus_rwwd, n = 10)
+```
+
+
+## Now: PRACTICAL I
+
+- becoming comfortable with text handling in R
+- calculating text metrics on real data
+
+
+##
+
+## {.sectiontitle}
+
+Text representations
+
+## Aim of text representations
+
+_A numerical representation of textual data._
+
+Most common approach:
+
+- representing a text by its tokens
+- each text consists of a frequency of its tokens
+
+## By hand
+
+> I think I believe him
+
+_How can we construct a term-frequency table?_
+
+## Steps
+
+1. create a column for each token
+2. count the frequency
+
+| text_id| I | think | believe | him |
+|-------:|-------:|-------:|-------:|-------:|
+| text1| 2 | 1 | 1 | 1 |
+
+## Term frequency
+
+- frequency of each token in each document
+- represented in a table (matrix)
+- tokens are features of a document
+- called a **Document Feature Matrix (= DFM)**
+
+## The DFM in `quanteda`
+
+- from `tokens` or `corpus` objects, create a DFM table
+
+```{r}
+ex_3 = 'I think I believe him'
+
+corpus_ex_3 = corpus(ex_3)
+tokens_ex_3 = tokens(corpus_ex_3)
+
+dfm(tokens_ex_3
+    , tolower = T)
+```
+
+## Sparsity
+
+Sparsity = % of zero-cells
+
+- Why is the sparsity 0% here?
+- What would you expect if we take additional documents, and why?
+
+## DFM with multiple documents
+
+```{r}
+corpus_3 = corpus(c("I think I believe him", "This is a cool function"))
+tokens_corpus_3 = tokens(corpus_3)
+```
+
+```{r}
+dfm(tokens_corpus_3)
+```
+
+## Remember n-grams?
+
+What happens if we add bi-grams (i.e., $n=1$ and $n=2$?
+
+> I think I believe him
+
+
+## ngrams in R
+
+```{r}
+tokens_ngrams(tokens(ex_3), n = 1:2)
+```
+
+## 
+
+_So we very quickly run into dimensionality problems with text data._
+
+## The Real-World Worry Dataset corpus
+
+Unigrams (~ tokens)
+
+```{r}
+tokens_corpus_rwwd = tokens(corpus_rwwd)
+
+dfm_unigrams = dfm(tokens_ngrams(tokens_corpus_rwwd
+                                 , n = 1)
+                   , tolower = T)
+
+dfm_unigrams
+```
+
+## Unigrams, bigrams and trigrams
+
+```{r}
+dfm_ngrams = dfm(tokens_ngrams(tokens_corpus_rwwd
+                                 , n = 1:3)
+                   , tolower = T)
+
+dfm_ngrams
+```
+
+## 
+
+```{r}
+dfm_ngrams[1:10, 201:210]
+```
+
+## {.sectiontitle}
+
+Reducing dimensionality in DFM representations
+
+## High-dimensionality is undesirable
+
+- adds little information
+- statistically problematic
+- computationally inefficient
+
+But: not all words (ngrams) are equally important.
+
+## Most common terms
+
+```{r}
+topfeatures(dfm_ngrams, n = 20)
+```
+
+These add little information.
+
+Also known as **stopwords** and often removed in preprocessing.
+
+## Stopwords
+
+Common stopword lists:
+
+```{r}
+stopwords(language = 'en')[1:20]
+```
+
+Note: no universal agreement on stopwords!
+
+## Removing stopwords
+
+```{r}
+tokens_rwwd = tokens_select(tokens_corpus_rwwd
+                            , pattern = stopwords("en")
+                            , selection = "remove")
+
+dfm(tokens_ngrams(tokens_rwwd
+                  , n = 1:3)
+    , tolower = T)
+```
+
+
+## Special language-based dimensionality reduction
+
+Take these example:
+
+1. Tokens: creating, creates, create
+2. Tokens: gone, went, going, goes
+
+These all belong to the same "core".
+
+**Stemming** and **lemmatisation** can solve this.
+
+## Stemming
+
+Idea: reduce a word to its word **stem**. Works by removing suffixes.
+
+```{r}
+toks
+
+tokens_wordstem(toks)
+```
+
+##
+
+```{r}
+tokens_wordstem(tokens(c('creating creates create')))
+
+tokens_wordstem(tokens(c('gone went going goes')))
+```
+
+
+## Lemmatisation
+
+Idea: reduce a word to its root meaning (the **lemma**)
+
+```{r message=F}
+library(textstem)
+lemmatize_words(c('gone', 'went', 'going', 'goes'))
+
+#lemmatize_words(c('better', 'best'))
+```
+
+## Impact of stemming
+
+The RWWD dataset: 
+
+- original ngram representation: 150,549 features (99.79% sparse)
+- after stopword removal: 113,954 features (99.85% sparse)
+
+```{r}
+dfm_stopw = dfm(tokens_ngrams(tokens_rwwd
+                  , n = 1:3)
+                , tolower = T)
+dfm_red = dfm_wordstem(x = dfm_stopw)
+dfm_red
+```
+
+## Further reducing sparsity
+
+We still have high sparsity: 106,412 features (99.84% sparse)
+
+## Sparsity correction
+
+Trimming the DFM based on term- or document-frequencies:
+
+```{r}
+dfm_red_2 = dfm_trim(dfm_red
+                , min_docfreq = 0.05
+                , docfreq_type = 'prop')
+dfm_red_2
+```
+
+
+## A remaining problem...
+
+We assume all words are equally important.
+
+But:
+
+- some words occur all by the nature of language (e.g., stopwords)
+- or by the nature of the specific context (here: worries about COVID-19)
+
+We want to:
+
+- weigh words so that we
+    - 'reward' local importance (within documents)
+    - 'punish' for global occurrences (across documents)
+
+## Weighting of words
+
+Metric for word importance: frequency of term $t$ in document $d$
+
+- $tf(t, d) = \sum_{t \in d} t$
+- $tf(t, d) = \frac{\sum_{t \in d} t}{nwords_d}$ (proportion)
+
+## Term proportions
+
+```{r}
+dfm_weight(dfm_red_2
+           , scheme = 'prop')[1:10, 1:10]
+```
+
+## Term counts
+
+```{r}
+dfm_weight(dfm_red_2
+           , scheme = 'count')[1:10, 1:10]
+```
+
+##  Correcting for global occurrence
+
+- Number of documents $d$ with term $t$
+- $df(d, t) = \sum_{d \ni t} 1$
+
+```{r}
+docfreq(dfm_red_2
+        , scheme = 'count')[1:10]
+```
+
+
+## Simple document frequency
+
+```{r echo=F, message=FALSE, warning=FALSE}
+{x = 1:50
+plot(x, ylim=c(-5, max(x)), type='l', col='blue', lwd=2.5, ylab="", xlab="No. of documents")
+legend(5, 45, legend=c("DF"), col=c("blue"), lty=c(1), cex=0.8)}
+```
+
+## Correcting for term inflation
+
+- we want: low values for common words
+- and: higher values for _important_ words
+
+Trick: _inverse_ document-frequency
+
+## Inverse DF (IDF)
+
+$idf(t) = \frac{n}{df(d, t)}$
+
+## IDF
+
+```{r echo=F}
+{x = 1:50
+plot(x, ylim=c(-5, max(x)), type='l', col='blue', lwd=2.5, ylab="", xlab="No. of document")
+lines(max(x)/x, col='red', lty=2, lwd=2)
+legend(5, 45, legend=c("DF", "IDF"), col=c("blue", "red"), lty=c(1,2), cex=0.8)}
+```
+
+## Problem?
+
+When $n$ becomes really large...
+
+```{r echo=F}
+{x = 1:500
+plot(x, ylim=c(-5, max(x)), type='l', col='blue', lwd=2.5, ylab="")
+lines(max(x)/x, col='red', lty=2, lwd=2)
+legend(50, 450, legend=c("DF", "IDF"), col=c("blue", "red"), lty=c(1,2), cex=0.8)}
+```
+
+## Solution: log IDF
+
+- to avoid extreme values, we use the logarithm
+- simple transformation: $idf(t) = log(\frac{n}{df(d, t)+1})$
+
+## Log IDF
+
+```{r echo=F}
+{x = 1:50
+plot(x, ylim=c(-5, max(x)), type='l', col='blue', lwd=2.5, ylab="", xlab="No. of document")
+lines(max(x)/x, col='red', lty=2, lwd=2)
+lines(log(max(x)/(x+1)), col='green', lty=1, lwd=3)
+legend(5, 45, legend=c("DF", "IDF", "log(IDF"), col=c("blue", "red", 'green'), lty=c(1,2,1), cex=0.8)}
+```
+
+## Combining term frequency and inverse document frequency
+
+1. Local importance (TF)
+
+```{r}
+dfm_weight(dfm_red_2, scheme = 'count')[1:10, 1:10]
+```
+
+
+##
+
+2. Correct for global occurrences (IDF)
+
+```{r}
+docfreq(dfm_red_2
+        , scheme = 'inverse'
+        , k = 1)[1:10]
+```
+
+
+## Full flow in R for TF-IDF weighting
+
+```{r}
+dfm_tfidf = dfm_tfidf(dfm_red_2
+                      , scheme_tf = "count"
+                      , scheme_df = "inverse")
+
+dfm_tfidf
+```
+
+
+## {.centerme}
+
+![](./img/tfidf_albon.png){width="60%"}
+
+<small>[Image reference](https://chrisalbon.com/machine_learning/preprocessing_text/tf-idf/)</small>
+
+
+## {.sectiontitle}
+
+Arithmetic operations with text representations
+
+## Text similarity
+
+- each text can be represented as a _vector_
+- e.g., simple DFM or a TF-IDF weighted DFM
+
+
+```{r echo=F}
+dfm_tfidf_df = convert(dfm_tfidf, to = 'data.frame')
+knitr::kable(dfm_tfidf_df[, c(1:5, 16:20)])
+```
+
+## Distances between vectors
+
+Suppose we have got two vectors:
+
+- $\vec{v_1} = [1, 2]$
+- $\vec{v_2} = [4, 3]$
+
+## {.centerme}
+
+```{r echo=FALSE}
+{plot(c(1,4),c(2,3)
+     , xlim=c(0,5)
+     , ylim=c(0,5)
+     , pch=19
+     , col=c('red', 'blue')
+     , ylab='Dim Y'
+     , xlab = 'Dim X'
+     , panel.first = grid()
+     , main = 'Vectors [1,2] and [4,3]')
+arrows(0,0,4,3, lwd=2, col='blue')
+arrows(0,0,1,2, lwd=2, col='red')}
+```
+
+## Euclidean distance
+
+Uses Pythagorean theorem.
+
+For two 2-dimensional locations:
+
+- build a right triangle
+- use $c^2 = a^2 + b^2$ to calculate the length of the hypotenuse $c$
+
+## {.centerme}
+
+```{r echo=F}
+{plot(c(1,4),c(2,3)
+     , xlim=c(0,5)
+     , ylim=c(0,5)
+     , pch=19
+     , col=c('red', 'blue')
+     , ylab='Dim Y'
+     , xlab = 'Dim X'
+     , panel.first = grid()
+     , main = 'Vectors [1,2] and [4,3]')
+arrows(0,0,4,3, lwd=2, col='blue')
+arrows(0,0,1,2, lwd=2, col='red')
+segments(1,2,4,2, lty=2)
+segments(4,2,4,3, lty=2)
+segments(1,2,4,3, lty=1, lwd=2, col='orange')
+}
+```
+
+## By hand:
+
+- $a = x_2 - x_1 = 4 - 1 = 3$
+- $b = y_2 - y_1 = 3 - 2 = 1$
+- $c^2 = a^2 + b^2$
+
+Thus:
+
+$c = \sqrt{a^2 + b^2} = \sqrt{9 + 1} = 3.16$
+
+For $n$ dimensions:
+
+$d(\mathbf{x}, \mathbf{y}) = \sqrt{\sum_{i=1}^n (x_i - y_i)^2}$
+
+
+## Euclidean distance and magnitude
+
+- takes into account the magnitude of vectors
+- but this is not always meaningful
+- different metric: _cosine_ distance
+- bounded to range: -1.00 (opposite) to +1.00 (identical)
+
+## Cosine distance
+
+```{r echo=FALSE}
+{plot(c(1,4,0,6),c(2,3,2,3)
+     , xlim=c(0,6)
+     , ylim=c(0,4)
+     , pch=19
+     , col=c('red', 'blue', 'green', 'pink')
+     , ylab='Dim Y'
+     , xlab = 'Dim X'
+     , panel.first = grid()
+     , main = 'Cosine distance: about the angles')
+arrows(0,0,4,3, lwd=2, col='blue')
+arrows(0,0,1,2, lwd=2, col='red')
+arrows(0,0,0,2, lwd=2, col='green')
+arrows(0,0,6,3, lwd=2, col='pink')}
+```
+
+
+## Cosine similarity
+
+$\text{cosine similarity}(\mathbf{A}, \mathbf{B}) = \frac{A \times B}{\sqrt{A \times A} * \sqrt{B \times B}}$
+
+_Note: $A \times B$ is the dot product of the vector. 
+
+## In R
+
+```{r}
+V1 = c(4,2,3)
+V2 = c(1,3,1)
+
+cossim = function(A, B){
+  numerator = sum(A*B)
+  denominator = sqrt(sum(A*A))*sqrt(sum(B*B))
+  cosine_sim = numerator/denominator
+  return(cosine_sim)
+}
+
+cossim(V1, V2)
+```
+
+## Similarity in our corpus
+
+```{r}
+# Euclidean distance-based
+dist(matrix(c(dfm_tfidf_df[1, 2:ncol(dfm_tfidf_df)]
+              , dfm_tfidf_df[2, 2:ncol(dfm_tfidf_df)])
+            , nrow = 2
+            , byrow = T)
+     , method = 'euclidean')
+```
+
+```{r}
+# Cosine distance-based
+1 - cossim(A = dfm_tfidf_df[1, 2:ncol(dfm_tfidf_df)]
+           , B = dfm_tfidf_df[2, 2:ncol(dfm_tfidf_df)])
+```
+
+
+## Now: PRACTICAL II
+
+- working with text representations
+- preprocessing steps for DFMs
+- vector-based similarity calculations
+

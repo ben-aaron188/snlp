@@ -1,0 +1,178 @@
+---
+title: 'Practical I'
+subtitle: Bennett Kleinberg
+date: 'Statistical Natural Language Processing in R'
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+    code_folding: show
+  html_notebook:
+    theme: united
+    toc: yes
+    code_folding: show
+  pdf_document:
+    toc: yes
+    code_folding: show
+---
+
+## Aims of this practical
+
+- Getting started with handling textual data in R
+- Basic steps in data cleaning
+- Calculating text metrics
+- Replicating Zipf's Law
+
+
+## Task 1: Corpus operations
+
+Before we work with text data in a more advanced manner, we will first start by using datasets that are contained in R and then move to loading external data sets on which we conduct text-based operations. 
+
+R - and `quanteda` specifically - contain numerous "built-in" datasets. You can find these under [https://quanteda.io/reference/index.html#section-data](https://quanteda.io/reference/index.html#section-data).
+
+By loading the `quanteda` package, these datasets are available in your workspace and can be accessed.
+
+```{r}
+library(quanteda)
+library(data.table)
+
+# we use the dataset of inaugural speeches by US presidents as the first example
+data_corpus_inaugural
+```
+
+
+To access the individual texts, you can simply index the object: 
+
+
+```{r}
+us_speeches = data_corpus_inaugural
+us_speeches[1]
+
+```
+
+Note that this corpus object also contains `dovcars` (document-level variables). These are essential for later analyses and classification tasks. We can see what these variables are as follows:
+
+```{r}
+docvars(us_speeches)
+```
+
+See more on document variables - including how you can assign them (useful for later steps) here: [https://tutorials.quanteda.io/basic-operations/corpus/docvars/](https://tutorials.quanteda.io/basic-operations/corpus/docvars/). For now, it suffices to access the `docvars` in the usual form:
+
+```{r}
+us_speeches$Year
+```
+
+Lastly, each document's name can be accessed as:
+
+```{r}
+docnames(us_speeches)
+```
+
+
+### Exercise 1.1 
+
+**Which speech has the highest number of characters per word? And which one the lowest?**
+
+_Hint: try to work with the native data.frame structure or with a data.table. This will require a conversion from the corpus object._
+
+```{r}
+# write your R code here
+
+```
+
+
+### Exercise 1.2 
+
+**Which speech contained the most punctuation?**
+
+```{r}
+# write your R code here
+
+```
+
+### Exercise 1.3 
+
+**How has the average sentence length changes over time?**
+
+```{r}
+# write your R code here
+
+```
+
+
+
+## Task 2: First steps with real datasets
+
+Use the data of statements on truthful and deceptive weekend plans that was the basis for [this paper](https://www.sciencedirect.com/science/article/pii/S0001691820305746). You can find the raw textual data on the OSF: [https://osf.io/rtq9y](https://osf.io/rtq9y). You can also access the dataset in the data directory at `./data/sign_events_data_statements.csv`
+
+The participants were asked to either tell the truth about their plans for the upcoming weekend or were assigned an activity from someone else and had to lie about it (i.e., fabricate a story).
+
+Each participant was asked two provide two statements (1. Please write about your weekend plans in as much detail as possible.; 2. Which information could prove that you are telling the truth?). Focus on the first question (called `q1` in the dataset).
+
+The variable `outcome_class` is either `t` (truthful) or `d` (deceptive).
+
+### Exercise 2.1 
+
+**What is the effect size (Cohen's d) for the difference in words per sentence between truthful and deceptive statements?**
+
+```{r}
+# loading the data (here: all in the data.table flow)
+
+ex_data = fread('/Users/bennettkleinberg/GitHub/snlp/data/sign_events_data_statements.csv')
+
+```
+
+
+```{r}
+# write your R code here
+
+```
+
+
+## Task 3: Replicating Zipf's Law
+
+A curious "law" in corpus linguistics is Zipf's Law ([YouTube here](https://www.youtube.com/watch?v=fCn8zs912OE)).
+
+Zipf's Law describes the relationship between the frequency of words in a language and their rank in a frequency-sorted list: the frequency of any word is inversely proportional to its rank in the frequency table.
+
+
+Key aspects of Zipf's Law:
+
+- Word frequency distribution: In a large enough collection of texts, the most common word occurs about twice as often as the second most frequent word, three times as often as the third most frequent word, etc.
+- Mathematical formulation: The law can be expressed as $f(w) \approx \frac{1}{r}$, where $f(w)$ is the frequency of word $w$ and r is the rank of the word.
+- Universality: This distribution is observed across various languages, including children's speech and specialized vocabularies.
+
+
+### Exercise 3.1
+
+The dataset we will use for this exercise stems from work a [paper on analysing narrative shapes in YouTube vlog transcripts](https://aclanthology.org/D18-1394/). In that paper, the video transcripts of 30k vlogs were analysed. The dataset can be loaded as follows:
+
+```{r}
+#uncomment the line below and run the code
+#load('/Users/bennettkleinberg/GitHub/snlp/data/vlogs_corpus.RData')
+
+#vlogs_corpus
+```
+
+**Does Zipf's Law apply to a corpus of YouTube vlog transcripts?**
+
+_Hint: you will need to obtain the most common words for this analysis from that corpus. Have a look at the [`topfeatures()` function](https://www.rdocumentation.org/packages/quanteda/versions/1.3.13/topics/topfeatures). Here, put your tokenised object into a `dfm` (we will learn more about the dfm in the next part)._
+
+```{r}
+# write your R code here
+
+```
+
+### Exercise 3.2 
+
+**How do the word frequency ranks in the vlogs corpus deviate from Google's 1 Trillion Word Corpus frequency ranks?**
+
+You can find a ranked list of word frequencies from from Google's Trillion Word Corpus at: [https://github.com/first20hours/google-10000-english](https://github.com/first20hours/google-10000-english). It is also provided in the `data` directory of this repo (`./data/google_10k_list.txt`). These data are already in ranked order; the file does not contain a header (so set: `header=F`).
+
+```{r}
+# write your R code here
+
+```
+
+
+---

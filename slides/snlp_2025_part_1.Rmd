@@ -59,6 +59,8 @@ _An introduction to statistical natural language processing in R_
 - followed by practicals (4x)
 - discussion of solutions
 
+All materials: [https://github.com/ben-aaron188/snlp](https://github.com/ben-aaron188/snlp)
+
 _Ask all your questions_
 
 ## The `quanteda` package

@@ -1,0 +1,167 @@
+---
+title: 'Practical IV'
+subtitle: Bennett Kleinberg
+date: 'Statistical Natural Language Processing in R'
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+    code_folding: show
+  html_notebook:
+    theme: united
+    toc: yes
+    code_folding: show
+  pdf_document:
+    toc: yes
+    code_folding: show
+---
+
+## Aims of this practical
+
+- loading and working with Glove embeddings
+- building an emotion prediction model with contextualised embeddings
+- conducting a full text classification pipeline
+
+```{r}
+library(data.table)
+library(quanteda)
+library(caret)
+```
+
+
+## Task 1: Working with Glove embeddings
+
+We will now look at word beddings. Load the Glove embedding data table as follows:
+
+- download the embeddings from: [https://nlp.stanford.edu/projects/glove/](https://nlp.stanford.edu/projects/glove/)
+- you can select only the 6B with 300 dimensions model
+- once downloaded and unzipped, point the `init_glove` function to the directory where these are located
+
+```{r}
+# load the function to initialise the glove embeddings
+source('/Users/bennettkleinberg/GitHub/snlp/data/init_glove.R')
+
+# then run the `init_glove` and point it to the model that you have downloaded (here: the 6B model with 300 dimensions)
+# init_glove(dir = '/Users/bennettkleinberg/Documents/glove'
+#            , which_model = '6B'
+#            , dim=300)
+
+# you now have the glove.pt object in your workspace and memory
+```
+
+
+### Exercise 1.1
+
+**Assess whether the statements below hold true in the Glove embeddings.**
+
+1. $cossim(sand, beach) > cossim(bleach, beach)$
+2. $cossim(dollar, euro) > cossim(neuro, euro)$
+
+Load the cosine similarity function:
+
+```{r}
+# for two vectors A and B, returns the cosine similarity between A and B
+cossim = function(A, B){
+  numerator = sum(A*B)
+  denominator = sqrt(sum(A*A))*sqrt(sum(B*B))
+  cosine_sim = numerator/denominator
+  return(cosine_sim)
+}
+```
+
+
+
+```{r}
+# statement 1
+
+# write your R code here
+
+# statement 2
+
+# write your R code here
+```
+
+### Exercise 1.2
+
+**Select a word of your choice and make a list of the semantically clostes ten other words. Then use the Glove embeddings to check what the closest neighbours are according to the embeddings model.**
+
+
+
+```{r}
+# you might need the textstats sublibrary of quanteda
+library(quanteda.textstats)
+
+# write your R code here
+```
+
+Bonus: what do the findings suggest about the training data?
+
+### Exercise 1.3
+
+We can now take the $\frac{\vec{GERMANY}}{\vec{BERLIN}} :: \frac{\vec{FRANCE}}{\vec{?}}$ example further and try to replicate some of the now famous problems with word embeddings.
+
+In REF, several problems have been shown, including the results if the following:
+
+$\frac{\vec{MAN}}{\vec{PROGRAMMER}} :: \frac{\vec{WOMAN}}{\vec{?}}$
+
+**Identify how the Glove model would solve this analogy.**
+
+_Hint: have a look at how we solved this in the slides._
+
+```{r}
+# write your R code here
+# 
+```
+
+
+
+## Task 2: Emotion prediction
+
+We were no move to text classification tasks. For this task, we will use the data set of narratives when people expressed their words about the pandemic. You can load the data set as indicated below from the data repository (`./data/real_world_worry_waves_dataset.csv`).
+
+```{r}
+rwwd = fread('/Users/bennettkleinberg/GitHub/snlp/data/real_world_worry_waves_dataset.csv')
+
+names(rwwd)
+```
+
+In this selection of the data set, you can find emotion scale ratings, the user selected best fitting emotion and the actual narratives written by the participants for two waves. Wave 1 corresponds to data collected in April 2020 and wave 2 to data collected under the identical instructions in April 2021.
+
+
+### Exercise 2.1
+
+**Use a bag-of-ngrams model to predict participants' anxiety score in April 2020 with the narratives written in the same year.**
+
+_Hint: the emotion data were collected on a scale from 1 (very low) to 9 (very high), so you might need to use regression models (rather than classification models). The caret package offers several hundreds of models: [https://topepo.github.io/caret/available-models.html](https://topepo.github.io/caret/available-models.html)_
+
+_Hint 2: you want to treat the target variable as a continuous one, so do not convert it to a factor (otherwise the model will try to make a 9-class classification problem of this)._
+
+_Hint 3: for the evaluation of the predictions on the test set, you will need to use regression performance metrics (i.e., those that quantify the discrepancy between observed and predicted values)_
+
+```{r warning=F}
+# write your R code here
+```
+
+
+
+### Exercise 2.2
+
+**Assess whether text embeddings can help predict participants' happiness rating in April 2021 based on the narrative they wrote a year earlier.**
+
+You can load the embeddings for the wave 1 text (256 dimensions, obtained from the most recent OpenAI embedding model) as follows (located at: `./data/rwwd_embeddings.csv`):
+
+```{r}
+rwwd_emb = fread("/Users/bennettkleinberg/GitHub/snlp/data/rwwd_embeddings.csv")
+```
+
+```{r warning=F}
+# write your R code here
+```
+
+
+
+## Task 3: Your own text classification model (optional)
+
+**Choose one of the available datasets in this course (or choose on of your own) and build your own text classification (or regression) model.**
+
+---

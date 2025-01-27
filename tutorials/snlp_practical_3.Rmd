@@ -1,0 +1,183 @@
+---
+title: 'Practical III'
+subtitle: Bennett Kleinberg
+date: 'Statistical Natural Language Processing in R'
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+    code_folding: show
+  html_notebook:
+    theme: united
+    toc: yes
+    code_folding: show
+  pdf_document:
+    toc: yes
+    code_folding: show
+---
+
+## Aims of this practical
+
+-   practicing sentiment analysis on a dataset of altright influencer vlogs
+-   broadening sentiment analysis to emotion analysis
+-   applying a dictionary to obtain hate speech measurements
+-   working with your own dictionary
+
+```{r}
+library(data.table)
+library(sentimentr)
+library(quanteda)
+```
+
+
+## Task 1: Sentiment analysis in vlogs of altright influencers
+
+For this task, we will use a dataset that we gathered a few years ago on YouTube's ["Creators for Change" initiative](https://www.youtube.com/creators/).
+
+> YouTube Creators for Change is a new initiative dedicated to amplifying and multiplying the voices of role models who are tackling difficult social issues with their channels. From combating hate speech, to countering xenophobia and extremism, to simply making the case for greater tolerance and empathy toward others, these creators are helping generate positive social change with their global fan bases.
+
+We have gathered data from the earliest creators for change as well as from channels considered as "toxic" as a counterpart and a reference sample of "normal" YouTube channels. The data used here are a stratified sample of the larger dataset (the larger dataset requires more memory and processing time but if you are keen on using it, you can find it at: [https://www.dropbox.com/scl/fi/ic96uiu92dqnyaxouzlzo/data_cfc_vlogs.RData?rlkey=psttsoodcucjt9sha1t3ce9w8&dl=0](https://www.dropbox.com/scl/fi/ic96uiu92dqnyaxouzlzo/data_cfc_vlogs.RData?rlkey=psttsoodcucjt9sha1t3ce9w8&dl=0).
+
+Load the data as follows:
+
+```{r}
+load('/Users/bennettkleinberg/GitHub/snlp/data/data_cfc_vlogs_sampled.RData')
+
+names(cfc_vlogs_sampled)
+```
+
+You can see how many vlogs there are in each class:
+
+```{r}
+# data.table
+cfc_vlogs_sampled[, .N, .(class)]
+
+# data.frame syntax
+table(cfc_vlogs_sampled$class)
+```
+
+The corpus contains (763k tokens):
+
+```{r}
+sum(cfc_vlogs_sampled$nwords)
+```
+
+
+
+### Exercise 1.1
+
+**Compare the sentiment between vlogs from the creators for change initiatives with the toxic comparison sample and the normal YouTube channels. What are the average sentiment values for the three classes?**
+
+Note: ideally you want to conduct any statistical analysis on this dataset in a multilevel model since there is nesting of vlogs in vloggers but you can also ignore this for now since the focus is on the NLP techniques.
+
+_Hint: the sentimentr approach relies on sentences and runs a sentence disambiguation each time it runs. You can speed the process up by creating the sentences first and then pass these on to the sentiment function._
+
+```{r}
+# write your R code here
+
+```
+
+
+### Exercise 1.2
+
+**Is the sentiment of the vlogs correlated to the view count of the vlogs?**
+
+You can use the `view_count_corrected` variable which corrects for the duration the vlog was available.
+
+```{r}
+# write your R code here
+
+```
+
+
+### Exercise 1.3
+
+**Which vlog of the entire dataset has the most positive (negative) sentiment?**
+
+
+```{r}
+# write your R code here
+```
+
+
+## Task 2: Emotion analysis
+
+We can now broaden the sentiment analysis to emotion analysis. The mechanism is the same but instead of just measuring sentiment, we can now use dictionaries that allow us to measure range of emotions conveyed through the vocabulary.
+
+### Exercise 2.1
+
+**Conduct an emotion analysis by changing the dictionary that is used by the sentiment function of the `sentimentr` package. (This is wrapped in the `sentimentr::emotion` function.)**
+
+Before you start with this, have a look at the `emotion` function --> `?emotion`
+
+```{r}
+# You can find a good emotion lexicon as follows:
+lexicon::hash_nrc_emotions
+```
+
+
+```{r}
+# write your R code here
+```
+
+
+
+### Exercise 2.2
+
+**What is the most dominant emotion for each of the three classes?**
+
+Hint: you may want to reshape the data to a wide format first.
+
+```{r}
+# write your R code here
+```
+
+
+
+## Task 3: Measuring hate speech
+
+Another dimension that has been research in the past decade is hate speech. One approach to measure hate speech is with existing databases of hateful terms or words.
+
+### Exercise 3.1
+
+An initiative to gather hateful content is [Hatebase](https://hatebase.org/) with their mission stated as follows:
+
+> Hatebase was built to assist companies, government agencies, NGOs and research organizations moderate online conversations and potentially use hate speech as a predictor for regional violence. (Language-based classification, or symbolization, is one of a handful of quantifiable steps toward genocide.)
+
+We have prepared the hatebase data on ethnicity in a dictionary YAML file under `./data/hatebase_ethnicity_lexicon.yml`. For more info on that approach, see REF
+
+**Run the hatebase ethnicity dictionary on the vlogs data and identify which vlogger contains the most hate speech according to this measurement approach.**
+
+```{r}
+# load the dictionary
+library(quanteda)
+#hatebase_dict = dictionary(file = "/Users/bennettkleinberg/GitHub/snlp/data/hatebase_ethnicity_lexicon.yml")
+
+# write your R code here
+```
+
+
+### Exercise 3.2
+
+**What is the effect size (Cohen's d) of the difference in ethnicity slurs between creators for change and toxic vloggers as measured by the Hatebase dictionary you imported above?**
+
+```{r}
+# write your R code here
+```
+
+
+## Task 4: Your own dictionary
+
+In this task, you can create your own dictionary. The key here is that you adhere to the structure that is expected to create a YAML file which can then be stored as a dictionary and imported so you can make a query with the DFM object.
+
+### Exercise 4.1
+
+**Create your own dictionary with at least three categories and apply it to (a selection of) the vlogs corpus you already loaded above.**
+
+
+```{r}
+# write your R code here
+```
+
+
+------------------------------------------------------------------------

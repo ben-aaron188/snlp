@@ -1,0 +1,320 @@
+---
+title: 'Practical IV (solutions)'
+subtitle: Bennett Kleinberg
+date: 'Statistical Natural Language Processing in R'
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+    code_folding: show
+  html_notebook:
+    theme: united
+    toc: yes
+    code_folding: show
+  pdf_document:
+    toc: yes
+    code_folding: show
+---
+
+## Aims of this practical
+
+- loading and working with Glove embeddings
+- building an emotion prediction model with contextualised embeddings
+- conducting a full text classification pipeline
+
+```{r}
+library(data.table)
+library(quanteda)
+library(caret)
+```
+
+
+## Task 1: Working with Glove embeddings
+
+We will now look at word beddings. Load the Glove embedding data table as follows:
+
+- download the embeddings from: [https://nlp.stanford.edu/projects/glove/](https://nlp.stanford.edu/projects/glove/)
+- you can select only the 6B with 300 dimensions model
+- once downloaded and unzipped, point the `init_glove` function to the directory where these are located
+
+```{r}
+# load the function to initialise the glove embeddings
+source('/Users/bennettkleinberg/GitHub/snlp/data/init_glove.R')
+
+# then run the `init_glove` and point it to the model that you have downloaded (here: the 6B model with 300 dimensions)
+init_glove(dir = '/Users/bennettkleinberg/Documents/glove'
+           , which_model = '6B'
+           , dim=300)
+
+# you now have the glove.pt object in your workspace and memory
+```
+
+
+### Exercise 1.1
+
+**Assess whether the statements below hold true in the Glove embeddings.**
+
+1. $cossim(sand, beach) > cossim(bleach, beach)$
+2. $cossim(dollar, euro) > cossim(neuro, euro)$
+
+Load the cosine similarity function:
+
+```{r}
+# for two vectors A and B, returns the cosine similarity between A and B
+cossim = function(A, B){
+  numerator = sum(A*B)
+  denominator = sqrt(sum(A*A))*sqrt(sum(B*B))
+  cosine_sim = numerator/denominator
+  return(cosine_sim)
+}
+```
+
+
+
+```{r}
+# statement 1
+
+sand_emb = as.vector(glove.pt[row.names(glove.pt) == 'sand', ])
+beach_emb = as.vector(glove.pt[row.names(glove.pt) == 'beach', ])
+bleach_emb = as.vector(glove.pt[row.names(glove.pt) == 'bleach', ])
+
+sand_beach = cossim(sand_emb, beach_emb)
+bleach_beach = cossim(beach_emb, bleach_emb)
+
+sand_beach > bleach_beach
+
+
+# statement 2
+
+euro_emb = as.vector(glove.pt[row.names(glove.pt) == 'euro', ])
+dollar_emb = as.vector(glove.pt[row.names(glove.pt) == 'dollar', ])
+neuro_emb = as.vector(glove.pt[row.names(glove.pt) == 'neuro', ])
+
+dollar_euro = cossim(euro_emb, dollar_emb)
+neuro_euro = cossim(euro_emb, neuro_emb)
+
+dollar_euro > neuro_euro
+```
+
+### Exercise 1.2
+
+**Select a word of your choice and make a list of the semantically clostes ten other words. Then use the Glove embeddings to check what the closest neighbours are according to the embeddings model.**
+
+
+
+```{r}
+# you might need the textstats sublibrary of quanteda
+library(quanteda.textstats)
+
+cos_sim_vals = textstat_simil(glove.pt
+                              , selection = c("sports")
+                              , margin = "documents"
+                              , method = "cosine")
+
+head(sort(cos_sim_vals[,1], decreasing = TRUE), 25)
+```
+
+Bonus: what do the findings suggest about the training data?
+
+### Exercise 1.3
+
+We can now take the $\frac{\vec{GERMANY}}{\vec{BERLIN}} :: \frac{\vec{FRANCE}}{\vec{?}}$ example further and try to replicate some of the now famous problems with word embeddings.
+
+In REF, several problems have been shown, including the results if the following:
+
+$\frac{\vec{MAN}}{\vec{PROGRAMMER}} :: \frac{\vec{WOMAN}}{\vec{?}}$
+
+**Identify how the Glove model would solve this analogy.**
+
+_Hint: have a look at how we solved this in the slides._
+
+```{r}
+# we first locate and retrieve the embeddings for the elements of the analogy
+man = as.vector(glove.pt[row.names(glove.pt) == 'man', ])
+programmer = as.vector(glove.pt[row.names(glove.pt) == 'programmer', ])
+woman = as.vector(glove.pt[row.names(glove.pt) == 'woman', ])
+
+
+# then we solve the analogy
+mystery_1 = man - programmer + woman
+
+# and we obtain:
+mystery_1
+
+
+# that vector now needs to be appended to the glove.pt data.table and then we need to retrieve its neighbours
+mystery = data.frame(matrix(mystery_1, nrow = 1, byrow = T))
+names(mystery) = featnames(glove.pt)
+mystery_dfm = as.dfm(mystery)
+
+glove.pt = rbind(glove.pt, mystery_dfm)
+row.names(glove.pt)[400001] = c('mystery_1')
+
+cos_sim_vals_mystery = textstat_simil(glove.pt
+                              , selection = c("mystery_1")
+                              , margin = "documents"
+                              , method = "cosine")
+
+head(sort(cos_sim_vals_mystery[,1], decreasing = TRUE), 30)
+# 
+```
+
+
+
+## Task 2: Emotion prediction
+
+We were no move to text classification tasks. For this task, we will use the data set of narratives when people expressed their words about the pandemic. You can load the data set as indicated below from the data repository (`./data/real_world_worry_waves_dataset.csv`).
+
+```{r}
+rwwd = fread('/Users/bennettkleinberg/GitHub/snlp/data/real_world_worry_waves_dataset.csv')
+
+names(rwwd)
+```
+
+In this selection of the data set, you can find emotion scale ratings, the user selected best fitting emotion and the actual narratives written by the participants for two waves. Wave 1 corresponds to data collected in April 2020 and wave 2 to data collected under the identical instructions in April 2021.
+
+
+### Exercise 2.1
+
+**Use a bag-of-ngrams model to predict participants' anxiety score in April 2020 with the narratives written in the same year.**
+
+_Hint: the emotion data were collected on a scale from 1 (very low) to 9 (very high), so you might need to use regression models (rather than classification models). The caret package offers several hundreds of models: [https://topepo.github.io/caret/available-models.html](https://topepo.github.io/caret/available-models.html)_
+
+_Hint 2: you want to treat the target variable as a continuous one, so do not convert it to a factor (otherwise the model will try to make a 9-class classification problem of this)._
+
+_Hint 3: for the evaluation of the predictions on the test set, you will need to use regression performance metrics (i.e., those that quantify the discrepancy between observed and predicted values)_
+
+```{r warning=F}
+# create corpus
+rwwd_corpus = corpus(rwwd$text_long_wave1
+                     , docvars = data.frame(ANX = rwwd$anxiety_wave1))
+
+# tokenisation
+toks = tokens(tolower(rwwd_corpus)
+              , remove_punct = T
+              , include_docvars = T)
+
+# removing stopwords
+toks = tokens_select(toks
+                     , pattern = stopwords('en')
+                     , selection = 'remove')
+
+# ngrams
+ngrams = tokens_ngrams(x = toks
+                       , n= 1:3)
+
+# creating the dfm and correct for sparsity directly
+dfm_rwwd = dfm_trim(dfm(ngrams)
+                 , min_docfreq = 0.05
+                 , docfreq_type = 'prop')
+
+
+# covert the dfm to a data.frame
+data_ml = convert(dfm_rwwd, to = 'data.frame')
+
+# add the outcome variable (target variable) from the docvars
+data_ml$ANX = dfm_rwwd$ANX
+
+# remove the "doc_id" variable
+data_ml = data_ml[, -c(1)]
+
+# splitting the data
+set.seed(123)
+
+in_training = createDataPartition(y = data_ml$ANX
+                                  , p = .8
+                                  , list = FALSE)
+
+training_data = data_ml[in_training, ]
+testing_data = data_ml[-in_training, ]
+
+# training the model
+# You might be asked to install LiblineaR; if so, do install it.
+model_svr = train(ANX ~ .
+                  , data = training_data
+                  , method = "svmLinear3" # note the change in model compared to classification tasks!
+                  , trControl = trainControl(method = 'cv'
+                                             , number=5
+                                             , savePredictions = T)
+                  , preProcess = c('nzv'))
+
+# test set predictions
+model_svr_pred = predict(model_svr
+                         , testing_data)
+
+# evaluations
+# Option 1: we can put these into a data.frame and then calculate the squared error and absolute error (other metrics are also possible)
+results = data.frame(obs = testing_data$ANX
+                     , pred = model_svr_pred)
+
+results$squared_error = (results$obs - results$pred)^2
+results$abs_error = abs(results$obs - results$pred)
+mean(results$squared_error)
+mean(results$abs_error)
+
+# Option 2: some metrics are available via the postresample option in caret
+postResample(pred = model_svr_pred
+             , obs = testing_data$ANX)
+```
+
+
+
+### Exercise 2.2
+
+**Assess whether text embeddings can help predict participants' happiness rating in April 2021 based on the narrative they wrote a year earlier.**
+
+You can load the embeddings for the wave 1 text (256 dimensions, obtained from the most recent OpenAI embedding model) as follows (located at: `./data/rwwd_embeddings.csv`):
+
+```{r}
+rwwd_emb = fread("/Users/bennettkleinberg/GitHub/snlp/data/rwwd_embeddings.csv")
+```
+
+```{r warning=F}
+# merge the embeddings with main rwwd data
+rwwd_merged = merge(rwwd, rwwd_emb, by='id')
+names(rwwd_merged)
+
+# select the relevant variables (optional; but it makes the model formula specification below easier by using the "~." notation)
+data_ml = rwwd_merged[, c(24:279, 20)]
+
+# splitting the data
+set.seed(123)
+
+in_training = createDataPartition(y = data_ml$happiness_wave2
+                                  , p = .8
+                                  , list = FALSE)
+
+training_data = data_ml[in_training, ]
+testing_data = data_ml[-in_training, ]
+
+# training the model
+model_svr = train(happiness_wave2 ~ .
+                  , data = training_data
+                  , method = "svmLinear3" # note the change in model compared to classification tasks!
+                  , trControl = trainControl(method = 'cv'
+                                             , number=5
+                                             , savePredictions = T)
+                  , preProcess = c('nzv'))
+
+# predictions on the test set
+model_svr_pred = predict(model_svr
+                         , testing_data)
+
+# evaluation of the predictions
+results = data.frame(obs = testing_data$happiness_wave2
+                     , pred = model_svr_pred)
+
+results$squared_error = (results$obs - results$pred)^2
+results$abs_error = abs(results$obs - results$pred)
+mean(results$squared_error)
+mean(results$abs_error)
+
+```
+
+
+
+## Task 3: Your own text classification model (optional)
+
+**Choose one of the available datasets in this course (or choose on of your own) and build your own text classification (or regression) model.**
+
+---

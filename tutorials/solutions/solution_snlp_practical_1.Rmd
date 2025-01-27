@@ -118,6 +118,12 @@ us_corpus_dt[, n_punct := ntoken(tokens_select(quanteda::tokens(text)
                                                , valuetype = "regex"
                                                , selection = 'keep'))]
 
+# note: this is equivalent to this data.frame notation
+us_corpus_df$n_punct = ntoken(tokens_select(quanteda::tokens(us_corpus_df$text)
+                                               , pattern = "[[:punct:]]"
+                                               , valuetype = "regex"
+                                               , selection = 'keep'))
+
 
 ## We may want to standardise this by the length of the speech
 us_corpus_dt[, prop_punct := n_punct/ntoken(quanteda::tokens(text))]
@@ -281,7 +287,7 @@ top_100_dt = setDT(data.frame(word_vlog = names(top_100)
 
 # merge both
 ranks_merged = merge(google_top_100, top_100_dt, by='rank')
-
+ranks_merged
 ```
 
 ---
